@@ -15,6 +15,11 @@ The container will start
 The image is always built with `DOCKER_DEFAULT_PLATFORM=linux/amd64` ([why?](https://stackoverflow.com/questions/71040681/qemu-x86-64-could-not-open-lib64-ld-linux-x86-64-so-2-no-such-file-or-direc)) and could be `docker-run` on both Ubuntu and MacOS.
 
 
+## Table of Content
+
+- [Docker Image](#install)
+- [NPM package @ostai/futuopend](#)
+
 ## Install
 
 ```sh
@@ -162,6 +167,33 @@ Asks the server to response the current status of the server
 ```
 
 Submits the SMS verification code to Futu OpenD agent.
+
+# @ostai/futuopend
+
+## Install
+
+```sh
+npm i @ostai/futuopend
+```
+
+## Usage
+
+```js
+const {
+  // The client manager to connect to the websocket server
+  FutuOpenDManager,
+  // STATUS enum of the websocket server
+  STATUS,
+  // To start the mock server with a mocked FutuOpenD for testing purposes
+  startMockServer
+} = require('@ostai/futuopend')
+
+const kill = startMockServer({
+  port
+})
+```
+
+
 
 # For contributors
 
