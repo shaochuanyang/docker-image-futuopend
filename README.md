@@ -41,6 +41,7 @@ docker pull ostai/futuopend:9.2.5208
 - **FUTU_LOGIN_PWD_MD5** `string`（必填）
 - **FUTU_LANG** `string`，默认 `chs`
 - **FUTU_LOG_LEVEL** `string`，默认 `no`
+- **FUTU_IP** `string`, 默认 `"0.0.0.0"`, 不同于 FutuOpenD CMD 的默认 IP `127.0.0.1`，由于这个仓库的目的是用于 kubernetes 集群，需要让 FutuOpenD 能够接受其他容器的请求。
 - **FUTU_PORT** `integer`，FutuOpenD 的端口，默认 `11111`
 - **SERVER_PORT** `integer`，websocket 服务器的端口，默认 `8000`
 - **FUTU_INIT_ON_START** `string="yes"`，容器启动时是否初始化 Futu OpenD agent，默认 `"yes"`

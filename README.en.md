@@ -50,6 +50,7 @@ docker pull ostai/futuopend:latest
   - `"no"` no log (the default value)
   - `"debug"` the most detailed
   - `"info"` less detailed
+- **FUTU_IP** `string` defaults to `"0.0.0.0"`, different from the default ip binding address of the FutuOpenD cli, so that it could accept connections from other containers.
 - **FUTU_PORT** `integer` the port of the FutuOpenD, defaults to `11111`
 - **SERVER_PORT** `integer` the port of the websocket server, defaults to `8000`
 - **FUTU_INIT_ON_START** `string="yes"` whether it will initialize the Futu OpenD agent on the start, defaults to `"yes"`
