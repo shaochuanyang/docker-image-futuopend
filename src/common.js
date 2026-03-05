@@ -13,42 +13,44 @@ const KEY_GETTER = Symbol('getter')
 
 
 class OutputManager {
-  #output = ''
-  #closed = false
-  #max = 200
+  constructor () {
+    this._output = ''
+    this._closed = false
+    this._max = 200
+  }
 
   add (chunk) {
-    if (this.#closed) {
+    if (this._closed) {
       return
     }
 
-    this.#output += chunk
+    this._output += chunk
 
-    const {length} = this.#output
+    const {length} = this._output
 
-    if (length > this.#max) {
-      this.#output = this.#output.slice(length - this.#max)
+    if (length > this._max) {
+      this._output = this._output.slice(length - this._max)
     }
   }
 
   [inspect.custom] () {
-    return this.#output
+    return this._output
   }
 
   includes (str) {
-    const index = this.#output.indexOf(str)
+    const index = this._output.indexOf(str)
 
     if (!~ index) {
       return false
     }
 
-    this.#output = this.#output.slice(index + str.length)
+    this._output = this._output.slice(index + str.length)
     return true
   }
 
   close () {
-    this.#output = ''
-    this.#closed = true
+    this._output = ''
+    this._closed = true
   }
 }
 

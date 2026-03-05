@@ -37,61 +37,53 @@ class Getter {
 
 
 class FutuOpenDManager {
-  #url
-  #terminateAfterIdle
-  #timer
-  #ws
-  #readyPromise
-  #statusPromise
-  #statusResolve
-
   constructor(url, {
     terminateAfterIdle = false
   } = {}) {
-    this.#url = url
-    this.#terminateAfterIdle = terminateAfterIdle
+    this._url = url
+    this._terminateAfterIdle = terminateAfterIdle
 
     const getter = new Getter()
     this[KEY_GETTER] = getter
 
-    this.#init()
+    this._init()
   }
 
-  #resetTimer () {
-    if (!this.#terminateAfterIdle) {
+  _resetTimer () {
+    if (!this._terminateAfterIdle) {
       return
     }
 
-    if (this.#timer) {
-      clearTimeout(this.#timer)
+    if (this._timer) {
+      clearTimeout(this._timer)
     }
 
-    this.#timer = setTimeout(() => {
-      if (this.#ws) {
+    this._timer = setTimeout(() => {
+      if (this._ws) {
         this.terminate()
-        this.#ws = null
+        this._ws = null
       }
-    }, this.#terminateAfterIdle)
+    }, this._terminateAfterIdle)
   }
 
-  #init () {
-    this.#ws = new WebSocket(this.#url)
+  _init () {
+    this._ws = new WebSocket(this._url)
 
     const {promise, resolve} = Promise.withResolvers()
-    this.#readyPromise = promise
+    this._readyPromise = promise
 
-    this.#ws.on('open', () => {
+    this._ws.on('open', () => {
       resolve()
     })
 
-    this.#ws.on('message', (msg) => {
-      this.#resetTimer()
+    this._ws.on('message', (msg) => {
+      this._resetTimer()
 
       const data = JSON.parse(msg)
 
       if (data.type === 'STATUS') {
-        if (this.#statusResolve) {
-          this.#statusResolve(data.status)
+        if (this._statusResolve) {
+          this._statusResolve(data.status)
           return
         }
       }
@@ -99,32 +91,32 @@ class FutuOpenDManager {
       this[KEY_GETTER].set(data)
     })
 
-    this.#resetTimer()
+    this._resetTimer()
   }
 
   async ready () {
-    if (!this.#ws) {
-      this.#init()
+    if (!this._ws) {
+      this._init()
     }
 
-    return this.#readyPromise
+    return this._readyPromise
   }
 
-  #send (msg) {
-    this.#ws.send(JSON.stringify(msg))
-    this.#resetTimer()
+  _send (msg) {
+    this._ws.send(JSON.stringify(msg))
+    this._resetTimer()
   }
 
   // Initialize FutuOpenD
   init () {
-    this.#send({
+    this._send({
       type: 'INIT'
     })
   }
 
   // Send verification code to FutuOpenD
   sendCode (code) {
-    this.#send({
+    this._send({
       type: 'VERIFY_CODE',
       code
     })
@@ -132,19 +124,19 @@ class FutuOpenDManager {
 
   // Get the status of FutuOpenD
   async status () {
-    if (!this.#statusPromise) {
+    if (!this._statusPromise) {
       const {promise, resolve} = Promise.withResolvers()
 
-      this.#statusPromise = promise
-      this.#statusResolve = resolve
+      this._statusPromise = promise
+      this._statusResolve = resolve
 
-      this.#send({
+      this._send({
         type: 'STATUS'
       })
     }
 
-    const status = await this.#statusPromise
-    this.#statusPromise = null
+    const status = await this._statusPromise
+    this._statusPromise = null
 
     return status
   }
@@ -154,7 +146,7 @@ class FutuOpenDManager {
   // }
 
   terminate () {
-    this.#ws.terminate()
+    this._ws.terminate()
   }
 }
 

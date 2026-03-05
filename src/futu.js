@@ -8,26 +8,6 @@ const {
 
 
 class FutuManager {
-  #cmd
-  #login_account
-  #login_pwd
-  #login_pwd_md5
-  #lang
-  #log_level
-  #ip
-  #api_port
-  #status
-  #supervise
-  #retry
-  #should_log
-  #ws
-  #clients
-  #ready_to_receive_code
-  #resolveReadyToReceiveCode
-  #child
-  #code
-  #output
-
   constructor (cmd, {
     login_account,
     login_pwd,
@@ -44,46 +24,46 @@ class FutuManager {
     // Whether to supervise the FutuOpenD process, and restart it if it closes
     supervise = true
   }) {
-    this.#cmd = cmd
-    this.#ip = ip
-    this.#login_account = login_account
-    this.#login_pwd = login_pwd
-    this.#login_pwd_md5 = login_pwd_md5
-    this.#lang = lang
-    this.#log_level = log_level
-    this.#api_port = api_port
-    this.#status = STATUS.ORIGIN
-    this.#supervise = supervise
-    this.#retry = parseInt(
+    this._cmd = cmd
+    this._ip = ip
+    this._login_account = login_account
+    this._login_pwd = login_pwd
+    this._login_pwd_md5 = login_pwd_md5
+    this._lang = lang
+    this._log_level = log_level
+    this._api_port = api_port
+    this._status = STATUS.ORIGIN
+    this._supervise = supervise
+    this._retry = parseInt(
       // For testing purposes
       process.env.FUTU_RETRY,
       1
     ) || 0
 
-    this.#should_log = log_level !== 'no'
+    this._should_log = log_level !== 'no'
 
-    this.#ws = new WebSocketServer({port: server_port}, () => {
-      this.#log(`WebSocket server is listening on port ${server_port}`)
+    this._ws = new WebSocketServer({port: server_port}, () => {
+      this._log(`WebSocket server is listening on port ${server_port}`)
     })
 
-    this.#clients = []
+    this._clients = []
 
-    this.#ws.on('connection', ws => {
-      if (this.#status === STATUS.REQUESTING_VERIFICATION_CODE) {
-        this.#send({
+    this._ws.on('connection', ws => {
+      if (this._status === STATUS.REQUESTING_VERIFICATION_CODE) {
+        this._send({
           type: 'REQUEST_CODE'
         }, [ws])
       }
 
-      if (this.#status === STATUS.CONNECTED) {
-        this.#send({
+      if (this._status === STATUS.CONNECTED) {
+        this._send({
           type: 'CONNECTED'
         }, [ws])
       }
 
-      this.#clients.push(ws)
+      this._clients.push(ws)
       ws.on('error', err => {
-        this.#error('ws error:', err)
+        this._error('ws error:', err)
       })
 
       ws.on('message', msg => {
@@ -99,83 +79,83 @@ class FutuManager {
         }
 
         if (type === 'INIT') {
-          this.#init()
+          this._init()
           return
         }
 
         if (type === 'STATUS') {
-          this.#send({
+          this._send({
             type: 'STATUS',
-            status: this.#status
+            status: this._status
           }, [ws])
           return
         }
       })
     })
 
-    this.#reset_ready_to_receive_code()
+    this._reset_ready_to_receive_code()
 
     if (auto_init) {
-      this.#init()
+      this._init()
     }
   }
 
-  #log(...msg) {
-    if (this.#should_log) {
+  _log(...msg) {
+    if (this._should_log) {
       console.log('[INFO]', ...msg)
     }
   }
 
-  #error(...msg) {
-    if (this.#should_log) {
+  _error(...msg) {
+    if (this._should_log) {
       console.error('[ERROR]', ...msg)
     }
   }
 
-  #reset_ready_to_receive_code() {
-    this.#ready_to_receive_code = new Promise((resolve, reject) => {
-      this.#resolveReadyToReceiveCode = resolve
+  _reset_ready_to_receive_code() {
+    this._ready_to_receive_code = new Promise((resolve, reject) => {
+      this._resolveReadyToReceiveCode = resolve
     })
   }
 
-  #init() {
-    if (this.#status >= STATUS.INIT) {
+  _init() {
+    if (this._status >= STATUS.INIT) {
       // Already inited
       return
     }
 
-    this.#status = STATUS.INIT
+    this._status = STATUS.INIT
 
-    this.#log('Initializing FutuOpenD with options ...', {
-      ip: this.#ip,
-      login_account: this.#login_account,
+    this._log('Initializing FutuOpenD with options ...', {
+      ip: this._ip,
+      login_account: this._login_account,
       login_pwd: '<hidden>',
       login_pwd_md5: '<hidden>',
-      lang: this.#lang,
-      log_level: this.#log_level,
-      api_port: this.#api_port
+      lang: this._lang,
+      log_level: this._log_level,
+      api_port: this._api_port
     })
 
     const login_args = []
 
-    if (this.#login_pwd) {
-      login_args.push(`-login_pwd=${this.#login_pwd}`)
+    if (this._login_pwd) {
+      login_args.push(`-login_pwd=${this._login_pwd}`)
     }
 
-    if (this.#login_pwd_md5) {
-      login_args.push(`-login_pwd_md5=${this.#login_pwd_md5}`)
+    if (this._login_pwd_md5) {
+      login_args.push(`-login_pwd_md5=${this._login_pwd_md5}`)
     }
 
-    this.#child = pty.spawn(this.#cmd, [
-      `-login_account=${this.#login_account}`,
+    this._child = pty.spawn(this._cmd, [
+      `-login_account=${this._login_account}`,
       ...login_args,
-      `-lang=${this.#lang}`,
-      `-log_level=${this.#log_level}`,
+      `-lang=${this._lang}`,
+      `-log_level=${this._log_level}`,
       // Ref:
       // https://openapi.futunn.com/futu-api-doc/en/opend/opend-cmd.html#7191
-      `-api_ip=${this.#ip}`,
-      `-websocket_ip=${this.#ip}`,
-      `-api_port=${this.#api_port}`
+      `-api_ip=${this._ip}`,
+      `-websocket_ip=${this._ip}`,
+      `-api_port=${this._api_port}`
     ], {
       name: 'xterm-color',
       cols: 80,
@@ -183,101 +163,101 @@ class FutuManager {
       cwd: process.cwd(),
       env: {
         ...process.env,
-        FUTU_RETRY: this.#retry
+        FUTU_RETRY: this._retry
       }
     })
 
-    this.#output = new OutputManager()
+    this._output = new OutputManager()
 
-    this.#child.on('data', chunk => {
+    this._child.on('data', chunk => {
       process.stdout.write(chunk)
-      this.#output.add(chunk)
+      this._output.add(chunk)
 
-      if (this.#output.includes('req_phone_verify_code')) {
-        this.#send({
+      if (this._output.includes('req_phone_verify_code')) {
+        this._send({
           type: 'REQUEST_CODE'
         })
-        this.#status = STATUS.REQUESTING_VERIFICATION_CODE
-        this.#resolveReadyToReceiveCode()
+        this._status = STATUS.REQUESTING_VERIFICATION_CODE
+        this._resolveReadyToReceiveCode()
         return
       }
 
-      if (this.#output.includes('Login successful')) {
-        this.#send({
+      if (this._output.includes('Login successful')) {
+        this._send({
           type: 'CONNECTED'
         })
-        this.#status = STATUS.CONNECTED
-        this.#output.close()
+        this._status = STATUS.CONNECTED
+        this._output.close()
       }
     })
 
-    this.#child.on('error', err => {
-      this.#error('FutuOpenD error:', err)
+    this._child.on('error', err => {
+      this._error('FutuOpenD error:', err)
     })
 
-    this.#child.on('exit', (code, signal) => {
-      this.#error('FutuOpenD exited')
+    this._child.on('exit', (code, signal) => {
+      this._error('FutuOpenD exited')
     })
 
-    this.#child.on('close', () => {
-      this.#log('FutuOpenD closed')
+    this._child.on('close', () => {
+      this._log('FutuOpenD closed')
 
-      this.#status = STATUS.CLOSED
-      this.#send({
+      this._status = STATUS.CLOSED
+      this._send({
         type: 'CLOSED'
       })
 
-      this.#reset_ready_to_receive_code()
+      this._reset_ready_to_receive_code()
 
-      if (this.#supervise) {
-        this.#retry++
-        this.#init()
+      if (this._supervise) {
+        this._retry++
+        this._init()
       }
     })
   }
 
   // Send msg to specific clients or all clients
-  #send(msg, clients) {
-    if (msg.type === 'REQUEST_CODE' && this.#code) {
+  _send(msg, clients) {
+    if (msg.type === 'REQUEST_CODE' && this._code) {
       // Already has a code
       return
     }
 
-    (clients || this.#clients).forEach(client => {
+    (clients || this._clients).forEach(client => {
       client.send(JSON.stringify(msg))
     })
   }
 
   verify_code(code) {
-    this.#code = code
+    this._code = code
 
-    if (this.#status === STATUS.REQUESTING_VERIFICATION_CODE) {
-      this.#set_verify_code()
+    if (this._status === STATUS.REQUESTING_VERIFICATION_CODE) {
+      this._set_verify_code()
       return
     }
 
-    if (this.#status === STATUS.CONNECTED) {
+    if (this._status === STATUS.CONNECTED) {
       // Already connected, no need to verify code
       return
     }
 
-    this.#ready_to_receive_code.then(() => {
-      this.#set_verify_code()
+    this._ready_to_receive_code.then(() => {
+      this._set_verify_code()
     })
   }
 
-  #set_verify_code() {
-    const code = this.#code
-    this.#code = undefined
+  _set_verify_code() {
+    const code = this._code
+    this._code = undefined
 
-    // this.#ready.then might be called multiple times,
+    // this._ready.then might be called multiple times,
     //   so we need to test the current status again
-    if (this.#status !== STATUS.REQUESTING_VERIFICATION_CODE) {
+    if (this._status !== STATUS.REQUESTING_VERIFICATION_CODE) {
       return
     }
 
-    this.#status = STATUS.VERIFIYING_CODE
-    this.#child.write(`input_phone_verify_code -code=${code}\r`)
+    this._status = STATUS.VERIFIYING_CODE
+    this._child.write(`input_phone_verify_code -code=${code}\r`)
   }
 }
 
