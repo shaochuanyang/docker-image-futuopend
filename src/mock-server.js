@@ -1,6 +1,6 @@
-const {join} = require('node:path')
-const {spawn} = require('node:child_process')
-const log = require('node:util').debuglog('futuopend')
+const {join} = require('path')
+const {spawn} = require('child_process')
+const log = require('util').debuglog('futuopend')
 
 const {
   OutputManager

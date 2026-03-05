@@ -1,7 +1,7 @@
 const {
   setTimeout,
   clearTimeout
-} = require('node:timers')
+} = require('timers')
 const {WebSocket} = require('ws')
 
 const {

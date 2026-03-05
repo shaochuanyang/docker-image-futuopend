@@ -1,4 +1,4 @@
-const {inspect} = require('node:util')
+const {inspect} = require('util')
 
 const STATUS = {
   CLOSED: -2,
