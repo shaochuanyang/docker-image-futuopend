@@ -3,10 +3,11 @@
 # ==============================================================================
 # Stage 1: Build Python from Source
 # ==============================================================================
-FROM ostai/ubuntu-node:16.04-16 AS builder
-
-# Set non-interactive mode for apt-get
-ENV DEBIAN_FRONTEND=noninteractive
+FROM centos/nodejs-12-centos7 AS builder
+USER 0
+RUN sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-*.repo \
+&& sed -i 's|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=http://vault.centos.org/7.9.2009|g' /etc/yum.repos.d/CentOS-*.repo \
+&& (sed -i 's|^enabled=1|enabled=0|g' /etc/yum.repos.d/CentOS-SCLo-*.repo || true)
 
 ARG PYTHON_VERSION=3.8.20
 ARG PYTHON_SHORT_VERSION=3.8
@@ -17,20 +18,23 @@ ARG PYTHON_SHORT_VERSION=3.8
 # Python is required to build node-gyp
 
 # Install build dependencies for python
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN yum -y install \
 wget \
-build-essential \
-libssl-dev \
-zlib1g-dev \
-libncurses5-dev \
-libffi-dev \
-libsqlite3-dev \
-libreadline-dev \
-libtk8.6 \
-libgdbm-dev \
+gcc \
+gcc-c++ \
+make \
+openssl-devel \
+zlib-devel \
+ncurses-devel \
+libffi-devel \
+sqlite-devel \
+readline-devel \
+tk-devel \
+gdbm-devel \
 ca-certificates \
-xz-utils \
-&& rm -rf /var/lib/apt/lists/*
+xz \
+&& yum clean all \
+&& rm -rf /var/cache/yum
 
 WORKDIR /usr/src
 
@@ -42,7 +46,7 @@ RUN wget https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VER
 # Compile and install Python
 WORKDIR /usr/src/Python-${PYTHON_VERSION}
 
-RUN ./configure --enable-optimizations \
+RUN ./configure \
 && make -j "$(nproc)" \
 && make altinstall
 
@@ -62,40 +66,31 @@ WORKDIR /usr/src
 COPY package*.json ./
 
 # This will install dependencies in /usr/src/node_modules
-RUN npm i --omit=dev
+RUN npm i --omit=dev --unsafe-perm
 
 # ==============================================================================
 # Stage 2: Create Final Runtime Image
 # ==============================================================================
-FROM ostai/ubuntu-node:16.04-16
+FROM centos/nodejs-12-centos7
+USER 0
+RUN sed -i 's|^mirrorlist=|#mirrorlist=|g' /etc/yum.repos.d/CentOS-*.repo \
+&& sed -i 's|^#baseurl=http://mirror.centos.org/centos/\$releasever|baseurl=http://vault.centos.org/7.9.2009|g' /etc/yum.repos.d/CentOS-*.repo \
+&& (sed -i 's|^enabled=1|enabled=0|g' /etc/yum.repos.d/CentOS-SCLo-*.repo || true)
 
 WORKDIR /usr/src/app
 
-RUN apt-get update \
-# We need ca-certificates to make HTTPS requests,
-#   so we should install recommends when installing wget,
-#   avoid using --no-install-recommends
-&& apt-get install -y wget \
-&& rm -rf /var/lib/apt/lists/* \
-&& apt-get clean
+RUN yum -y install wget ca-certificates \
+&& yum clean all \
+&& rm -rf /var/cache/yum
 
-ARG FUTU_VERSION=9.2.5208_Ubuntu16.04
+ARG FUTU_VERSION=10.0.6008_Centos7
 
-RUN wget -O Futu_OpenD.tar.gz https://softwaredownload.futunn.com/Futu_OpenD_$FUTU_VERSION.tar.gz \
-&& tar -xf Futu_OpenD.tar.gz --strip-components=1 \
+RUN wget -O moomoo_OpenD.tar.gz https://softwaredownload.futunn.com/moomoo_OpenD_$FUTU_VERSION.tar.gz \
+&& tar -xf moomoo_OpenD.tar.gz --strip-components=1 \
 && mkdir bin \
-&& mv ./Futu_OpenD_${FUTU_VERSION}/AppData.dat ./bin \
-&& mv ./Futu_OpenD_${FUTU_VERSION}/FTWebSocket ./bin \
-&& mv ./Futu_OpenD_${FUTU_VERSION}/FutuOpenD ./bin \
-&& mv ./Futu_OpenD_${FUTU_VERSION}/FutuOpenD.xml ./bin \
-&& mv ./Futu_OpenD_${FUTU_VERSION}/libFTAPIChannel.so ./bin \
-&& mv ./Futu_OpenD_${FUTU_VERSION}/libf3cbasis.so ./bin \
-&& mv ./Futu_OpenD_${FUTU_VERSION}/libf3clog.so ./bin \
-&& mv ./Futu_OpenD_${FUTU_VERSION}/libf3clogin.so ./bin \
-&& mv ./Futu_OpenD_${FUTU_VERSION}/libf3cloguploader.so ./bin \
-&& mv ./Futu_OpenD_${FUTU_VERSION}/libf3creport.so ./bin \
-&& rm -rf Futu_OpenD* \
-&& chmod +x bin/FutuOpenD \
+&& mv ./moomoo_OpenD_${FUTU_VERSION}/* ./bin \
+&& rm -rf moomoo_OpenD* \
+&& chmod +x bin/OpenD \
 && ls
 
 # If we `COPY --from=builder /usr/src/node_modules .`,
@@ -112,6 +107,7 @@ RUN ls -la ./node_modules \
 && rm ./src/check.js
 
 ENV FUTU_LOGIN_ACCOUNT=
+ENV FUTU_LOGIN_PWD=
 ENV FUTU_LOGIN_PWD_MD5=
 # ENV FUTU_LOGIN_REGION=sh
 ENV FUTU_LANG=en
@@ -123,6 +119,6 @@ ENV FUTU_PORT=11111
 ENV SERVER_PORT=8000
 ENV FUTU_INIT_ON_START=yes
 ENV FUTU_SUPERVISE_PROCESS=yes
-ENV FUTU_CMD=/usr/src/app/bin/FutuOpenD
+ENV FUTU_CMD=/usr/src/app/bin/OpenD
 
 CMD [ "node", "/usr/src/app/src/start.js" ]

@@ -138,6 +138,34 @@ test.serial('auto init', async t => {
 })
 
 
+test.serial('support plaintext password login', async t => {
+  const {
+    port,
+    kill
+  } = await startServer({
+    initRetry: 2,
+    env: {
+      FUTU_LOGIN_PWD_MD5: '',
+      FUTU_LOGIN_PWD: 'test-plain-password'
+    }
+  })
+
+  const tester = new WSTester(1, {
+    port,
+    t
+  })
+
+  await tester.ready()
+  await tester.init()
+
+  await tester.equal({
+    type: 'CONNECTED'
+  })
+
+  kill()
+})
+
+
 test.serial('spawn failed', async t => {
   const {
     port,

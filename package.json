@@ -1,5 +1,5 @@
 {
-  "name": "@ostai/futuopend",
+  "name": "@shaochuanyang123/moomoo_opend",
   "version": "2.0.3",
   "dependencies": {
     "@ostai/env": "^1.1.2",
@@ -11,8 +11,8 @@
     "src"
   ],
   "scripts": {
-    "test": "NODE_DEBUG=futuopend NODE_OPTIONS=--trace-warnings nyc ava --timeout=10s --verbose",
-    "start": "node start.js",
+    "test": "cross-env NODE_DEBUG=futuopend NODE_OPTIONS=--trace-warnings nyc ava --timeout=10s --verbose",
+    "start": "node src/start.js",
     "report:coverage": "nyc report --reporter=text-lcov > coverage.lcov"
   },
   "ava": {
@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "ava": "^6.2.0",
+    "cross-env": "^10.0.0",
     "find-free-ports": "^3.1.1",
     "nyc": "^17.1.0",
     "promise.withresolvers": "^1.0.3"

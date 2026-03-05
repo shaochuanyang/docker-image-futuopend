@@ -12,12 +12,16 @@ const startMockServer = async ({
   initRetry = 0,
   env: optionEnv = {}
 }) => {
+  const mockFutuCommand = process.platform === 'win32'
+    ? join(__dirname, '..', 'src', 'mock-futuopend.cmd')
+    : join(__dirname, '..', 'src', 'mock-futuopend.js')
+
   if (initRetry) {
     optionEnv.FUTU_RETRY = initRetry
   }
 
   const env = Object.assign({
-    FUTU_CMD: join(__dirname, '..', 'src', 'mock-futuopend.js'),
+    FUTU_CMD: mockFutuCommand,
     FUTU_LOGIN_ACCOUNT: 'test',
     FUTU_LOGIN_PWD_MD5: 'test',
     FUTU_LANG: 'en',
@@ -36,7 +40,8 @@ const startMockServer = async ({
 
   const spawnPath = join(__dirname, 'start.js')
 
-  const child = spawn(spawnPath, {
+  // Use Node executable explicitly for cross-platform compatibility.
+  const child = spawn(process.execPath, [spawnPath], {
     stdio: 'pipe',
     env: {
       ...process.env,

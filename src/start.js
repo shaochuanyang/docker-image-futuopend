@@ -7,6 +7,7 @@ const {
 } = require('./futu')
 
 const login_account = env('FUTU_LOGIN_ACCOUNT', env.required)
+const login_pwd = env('FUTU_LOGIN_PWD', null, '')
 const login_pwd_md5 = env('FUTU_LOGIN_PWD_MD5', null, '')
 
 // Removed in new versions of FutuOpenD
@@ -23,8 +24,13 @@ const supervise = env('FUTU_SUPERVISE_PROCESS', env.boolean, true)
 
 const FUTU_CMD = env('FUTU_CMD', env.required)
 
+if (!login_pwd && !login_pwd_md5) {
+  throw new Error('Either FUTU_LOGIN_PWD or FUTU_LOGIN_PWD_MD5 is required')
+}
+
 new FutuManager(FUTU_CMD, {
   login_account,
+  login_pwd,
   login_pwd_md5,
   // login_region,
   lang,

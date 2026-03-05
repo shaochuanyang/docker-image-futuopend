@@ -70,8 +70,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ostai/futuopend:${{ env.FUTU_VERSION }}
-            ostai/futuopend:latest
+            shaochuanyang123/moomoo_opend:${{ env.FUTU_VERSION }}
+            shaochuanyang123/moomoo_opend:latest
           platforms: linux/amd64
           build-args: |
             FUTU_VERSION=${{ env.FUTU_VERSION }}_Ubuntu16.04

@@ -1,53 +1,55 @@
-[中文版](https://github.com/kaelzhang/docker-image-futuopend)
+[中文版](https://github.com/shaochuanyang123/docker-image-futuopend)
 
-# Docker Image: ostai/ FutuOpenD
+# Docker Image: shaochuanyang123/moomoo_opend
 
-[![Build Status](https://github.com/kaelzhang/docker-image-futuopend/actions/workflows/docker.yml/badge.svg)](https://github.com/kaelzhang/docker-image-futuopend/actions/workflows/docker.yml)
-[![Coverage](https://codecov.io/gh/kaelzhang/docker-image-futuopend/branch/master/graph/badge.svg)](https://codecov.io/gh/kaelzhang/docker-image-futuopend)
+[![Build Status](https://github.com/shaochuanyang123/docker-image-futuopend/actions/workflows/docker.yml/badge.svg)](https://github.com/shaochuanyang123/docker-image-futuopend/actions/workflows/docker.yml)
+[![Coverage](https://codecov.io/gh/shaochuanyang123/docker-image-futuopend/branch/master/graph/badge.svg)](https://codecov.io/gh/shaochuanyang123/docker-image-futuopend)
 
 
-Docker image for FutuOpenD on Ubuntu, the one that really works and could handle SMS verification requests.
+Docker image for moomoo OpenD on CentOS 7, the one that really works and could handle SMS verification requests.
 
 The container will start
 - A FutuOpenD agent
 - A websocket server which could help to check the ready status of the FutuOpenD agent and make it possible for you to provide SMS verfication code.
 
-The image is always built with `DOCKER_DEFAULT_PLATFORM=linux/amd64` ([why?](https://stackoverflow.com/questions/71040681/qemu-x86-64-could-not-open-lib64-ld-linux-x86-64-so-2-no-such-file-or-direc)) and could be `docker-run` on both Ubuntu and MacOS.
+The image is always built with `DOCKER_DEFAULT_PLATFORM=linux/amd64` ([why?](https://stackoverflow.com/questions/71040681/qemu-x86-64-could-not-open-lib64-ld-linux-x86-64-so-2-no-such-file-or-direc)).
+
+It can also run on ARM64 hosts (Apple Silicon / ARM Linux) via `linux/amd64` emulation mode (not a native ARM binary).
 
 
 ## Table of Content
 
 - [Docker Image](#install)
-- [NPM package @ostai/futuopend](#)
+- [NPM package @shaochuanyang123/moomoo_opend](#)
 
 ## Install
 
 ```sh
 # Recommended (to pull an image by providing specific tag name)
-docker pull ostai/futuopend:9.4.5418
+docker pull shaochuanyang123/moomoo_opend:10.0.6008
 ```
 
 Or
 
 ```sh
-docker pull ostai/futuopend:latest
+docker pull shaochuanyang123/moomoo_opend:latest
 ```
 
-## Lastest FutuOpenD Image Version
+## Current moomoo OpenD Version
 
-- 9.4.5418_Ubuntu16.04
-- 9.4.5408_Ubuntu16.04
-- 9.3.5308_Ubuntu16.04
-- 9.2.5208_Ubuntu16.04
+- 10.0.6008_Centos7
 
-[Other versions](https://hub.docker.com/r/ostai/futuopend/tags)
+[Other versions](https://hub.docker.com/r/shaochuanyang123/moomoo_opend/tags)
 
 ## Usage
 
 ### Environment Variables
 
 - **FUTU_LOGIN_ACCOUNT** `string` required, login account
-- **FUTU_LOGIN_PWD_MD5** `string` required, login password ciphertext (32-bit MD5 encrypted hexadecimal).
+- **FUTU_LOGIN_PWD** `string` optional, plaintext login password.
+- **FUTU_LOGIN_PWD_MD5** `string` optional, login password ciphertext (32-bit MD5 encrypted hexadecimal).
+  - At least one of `FUTU_LOGIN_PWD` and `FUTU_LOGIN_PWD_MD5` is required.
+  - Supports plaintext only, or `md5 + plaintext` together.
 - **FUTU_LANG** `string` defaults to `chs`
 - **FUTU_LOG_LEVEL** `string` defaults to `no`, options:
   - `"no"` no log (the default value)
@@ -64,12 +66,15 @@ docker pull ostai/futuopend:latest
 ```sh
 docker run \
 --name FutuOpenD \
+--platform linux/amd64 \
 -e "SERVER_PORT=8081" \
 -p 8081:8081 \
 -p 11111:11111 \
 -e "FUTU_LOGIN_ACCOUNT=$your_futu_id" \
+-e "FUTU_LOGIN_PWD=$your_password_plaintext" \
+# Optional: if available, pass md5 together
 -e "FUTU_LOGIN_PWD_MD5=$your_password_md5" \
-ostai/futuopend:latest
+shaochuanyang123/moomoo_opend:latest
 ```
 
 ### WebSocket Server
@@ -172,12 +177,12 @@ Asks the server to response the current status of the server
 
 Submits the SMS verification code to Futu OpenD agent.
 
-# @ostai/futuopend
+# @shaochuanyang123/moomoo_opend
 
 ## Install
 
 ```sh
-npm i @ostai/futuopend
+npm i @shaochuanyang123/moomoo_opend
 ```
 
 ## Usage
@@ -190,7 +195,7 @@ const {
   STATUS,
   // To start the mock server with a mocked FutuOpenD for testing purposes
   startMockServer
-} = require('@ostai/futuopend')
+} = require('@shaochuanyang123/moomoo_opend')
 
 const kill = startMockServer({
   port
@@ -204,15 +209,16 @@ const kill = startMockServer({
 ## How to build your own image
 
 ```sh
-export VERSION=9.2.5208
-export FUTU_VERSION=${VERSION}_Ubuntu16.04
+export VERSION=10.0.6008
+export FUTU_VERSION=${VERSION}_Centos7
 ```
 
 ```sh
-TAG=ostai/futuopend
+TAG=shaochuanyang123/moomoo_opend
 
 
 docker build -t $TAG:$VERSION \
+  --platform linux/amd64 \
   --build-arg FUTU_VERSION=$FUTU_VERSION \
   .
 ```
@@ -220,7 +226,8 @@ docker build -t $TAG:$VERSION \
 For example:
 
 ```sh
-docker build -t ostai/futuopend:${VERSION} \
+docker build -t shaochuanyang123/moomoo_opend:${VERSION} \
+  --platform linux/amd64 \
   --build-arg FUTU_VERSION=${FUTU_VERSION} \
   .
 ```

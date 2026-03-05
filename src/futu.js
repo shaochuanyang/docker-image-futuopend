@@ -10,6 +10,7 @@ const {
 class FutuManager {
   #cmd
   #login_account
+  #login_pwd
   #login_pwd_md5
   #lang
   #log_level
@@ -29,6 +30,7 @@ class FutuManager {
 
   constructor (cmd, {
     login_account,
+    login_pwd,
     login_pwd_md5,
     lang,
     log_level,
@@ -45,6 +47,7 @@ class FutuManager {
     this.#cmd = cmd
     this.#ip = ip
     this.#login_account = login_account
+    this.#login_pwd = login_pwd
     this.#login_pwd_md5 = login_pwd_md5
     this.#lang = lang
     this.#log_level = log_level
@@ -54,7 +57,7 @@ class FutuManager {
     this.#retry = parseInt(
       // For testing purposes
       process.env.FUTU_RETRY,
-      10
+      1
     ) || 0
 
     this.#should_log = log_level !== 'no'
@@ -146,15 +149,26 @@ class FutuManager {
     this.#log('Initializing FutuOpenD with options ...', {
       ip: this.#ip,
       login_account: this.#login_account,
+      login_pwd: '<hidden>',
       login_pwd_md5: '<hidden>',
       lang: this.#lang,
       log_level: this.#log_level,
       api_port: this.#api_port
     })
 
+    const login_args = []
+
+    if (this.#login_pwd) {
+      login_args.push(`-login_pwd=${this.#login_pwd}`)
+    }
+
+    if (this.#login_pwd_md5) {
+      login_args.push(`-login_pwd_md5=${this.#login_pwd_md5}`)
+    }
+
     this.#child = pty.spawn(this.#cmd, [
       `-login_account=${this.#login_account}`,
-      `-login_pwd_md5=${this.#login_pwd_md5}`,
+      ...login_args,
       `-lang=${this.#lang}`,
       `-log_level=${this.#log_level}`,
       // Ref:

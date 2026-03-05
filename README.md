@@ -1,47 +1,49 @@
 [English Version](./README.en.md)
 
-# Docker Image 镜像: ostai/FutuOpenD
+# Docker Image 镜像: shaochuanyang123/moomoo OpenD
 
-[![Build Status](https://github.com/kaelzhang/docker-image-futuopend/actions/workflows/docker.yml/badge.svg)](https://github.com/kaelzhang/docker-image-futuopend/actions/workflows/docker.yml)
-[![Coverage](https://codecov.io/gh/kaelzhang/docker-image-futuopend/branch/master/graph/badge.svg)](https://codecov.io/gh/kaelzhang/docker-image-futuopend)
+[![Build Status](https://github.com/shaochuanyang123/docker-image-futuopend/actions/workflows/docker.yml/badge.svg)](https://github.com/shaochuanyang123/docker-image-futuopend/actions/workflows/docker.yml)
+[![Coverage](https://codecov.io/gh/shaochuanyang123/docker-image-futuopend/branch/master/graph/badge.svg)](https://codecov.io/gh/shaochuanyang123/docker-image-futuopend)
 
-真正可用的 FutuOpenD docker 镜像。
+真正可用的 moomoo OpenD docker 镜像。
 
-之所以创建这个项目的原因，是因为我试过很多 FutuOpenD 的 docker 镜像，要么是根本无法运行起来，要么没有处理短信验证码，或者是需要我们手动 `docker exec` 到容器里面处理验证码，导致根本不能够运维。
+之所以创建这个项目的原因，是因为我试过很多 OpenD 的 docker 镜像，要么是根本无法运行起来，要么没有处理短信验证码，或者是需要我们手动 `docker exec` 到容器里面处理验证码，导致根本不能够运维。
 
 容器启动后会运行：
 - 一个 FutuOpenD agent
 - 一个 websocket 服务器，用于检查 FutuOpenD agent 的就绪状态，并支持你提供短信验证码，来进行必要的初始化
 
-该镜像始终使用 `DOCKER_DEFAULT_PLATFORM=linux/amd64` 构建（[why?](https://stackoverflow.com/questions/71040681/qemu-x86-64-could-not-open-lib64-ld-linux-x86-64-so-2-no-such-file-or-direc)）并可在 Ubuntu 和 MacOS 上运行。
+该镜像始终使用 `DOCKER_DEFAULT_PLATFORM=linux/amd64` 构建（[why?](https://stackoverflow.com/questions/71040681/qemu-x86-64-could-not-open-lib64-ld-linux-x86-64-so-2-no-such-file-or-direc)）。
+
+在 ARM64 设备（Apple Silicon / ARM Linux）上也可运行，但需要通过 `linux/amd64` 仿真模式启动容器（不是 ARM 原生二进制）。
 
 ## 安装
 
 ```sh
-docker pull ostai/futuopend:latest
+docker pull shaochuanyang123/moomoo_opend:latest
 ```
 
 或者
 
 ```sh
-docker pull ostai/futuopend:9.4.5418
+docker pull shaochuanyang123/moomoo_opend:10.0.6008
 ```
 
-## 最新支持的 FutuOpenD 镜像版本
+## 当前使用的 moomoo OpenD 版本
 
-- 9.4.5418_Ubuntu16.04
-- 9.4.5408_Ubuntu16.04
-- 9.3.5308_Ubuntu16.04
-- 9.2.5208_Ubuntu16.04
+- 10.0.6008_Centos7
 
-[其他版本](https://hub.docker.com/r/ostai/futuopend/tags)
+[其他版本](https://hub.docker.com/r/shaochuanyang123/moomoo_opend/tags)
 
 ## 用法
 
 ### 环境变量
 
 - **FUTU_LOGIN_ACCOUNT** `string`（必填）
-- **FUTU_LOGIN_PWD_MD5** `string`（必填）
+- **FUTU_LOGIN_PWD** `string`（可选，明文密码）
+- **FUTU_LOGIN_PWD_MD5** `string`（可选，32 位 MD5 密文）
+  - `FUTU_LOGIN_PWD` 和 `FUTU_LOGIN_PWD_MD5` 至少填一个
+  - 支持仅明文，或同时传入 `md5 + 明文`
 - **FUTU_LANG** `string`，默认 `chs`
 - **FUTU_LOG_LEVEL** `string`，默认 `no`
 - **FUTU_IP** `string`, 默认 `"0.0.0.0"`, 不同于 FutuOpenD CMD 的默认 IP `127.0.0.1`，由于这个仓库的目的是用于 kubernetes 集群，需要让 FutuOpenD 能够接受其他容器的请求。
@@ -55,12 +57,15 @@ docker pull ostai/futuopend:9.4.5418
 ```sh
 docker run \
 --name FutuOpenD \
+--platform linux/amd64 \
 -e "SERVER_PORT=8081" \
 -p 8081:8081 \
 -p 11111:11111 \
 -e "FUTU_LOGIN_ACCOUNT=$your_futu_id" \
+-e "FUTU_LOGIN_PWD=$your_password_plaintext" \
+# 可选：若有 md5，可同时传入
 -e "FUTU_LOGIN_PWD_MD5=$your_password_md5" \
-ostai/futuopend:latest
+shaochuanyang123/moomoo_opend:latest
 ```
 
 ### WebSocket 服务器
@@ -163,15 +168,16 @@ ws.on('open', () => {
 ## 如何构建你自己的镜像
 
 ```sh
-export VERSION=9.2.5208
-export FUTU_VERSION=${VERSION}_Ubuntu16.04
+export VERSION=10.0.6008
+export FUTU_VERSION=${VERSION}_Centos7
 ```
 
 ```sh
-TAG=ostai/futuopend
+TAG=shaochuanyang123/moomoo_opend
 
 
 docker build -t $TAG:$VERSION \
+  --platform linux/amd64 \
   --build-arg FUTU_VERSION=$FUTU_VERSION \
   .
 ```
@@ -179,7 +185,8 @@ docker build -t $TAG:$VERSION \
 例如:
 
 ```sh
-docker build -t ostai/futuopend:${VERSION} \
+docker build -t shaochuanyang123/moomoo_opend:${VERSION} \
+  --platform linux/amd64 \
   --build-arg FUTU_VERSION=${FUTU_VERSION} \
   .
 ```
