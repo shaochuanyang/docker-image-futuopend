@@ -78,6 +78,15 @@ const ws = new WebSocket('ws://localhost:8081')
 ws.on('message', msg => {
   const data = JSON.parse(msg)
 
+  if (data.type === 'REQUEST_PIC_CODE') {
+    console.log('pic verify code path:', data.pic_verify_code_path)
+    ws.send(JSON.stringify({
+      type: 'VERIFY_PIC_CODE',
+      code: '1234'
+    }))
+    return
+  }
+
   if (data.type === 'REQUEST_CODE') {
     ws.send(JSON.stringify({
       type: 'VERIFY_CODE',
@@ -108,6 +117,14 @@ ws.on('open', () => {
 下行和上行消息均为 JSON 格式。
 
 #### 下行消息：服务器 -> 客户端
+
+```json
+{
+  "type": "REQUEST_PIC_CODE",
+  "pic_verify_code_path": "/usr/src/app/bin/verify_code.png"
+}
+```
+表示 FutuOpenD agent 需要你提供图片验证码，`pic_verify_code_path` 是检测到的验证码图片保存路径（可能为 `null`）
 
 ```json
 {
@@ -154,6 +171,14 @@ ws.on('open', () => {
 }
 ```
 请求服务器返回当前状态
+
+```json
+{
+  "type": "VERIFY_PIC_CODE",
+  "code": "1234"
+}
+```
+向 FutuOpenD agent 提交图片验证码
 
 ```json
 {

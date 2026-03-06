@@ -122,6 +122,14 @@ class FutuOpenDManager {
     })
   }
 
+  // Send picture verification code to FutuOpenD
+  sendPicCode (code) {
+    this._send({
+      type: 'VERIFY_PIC_CODE',
+      code
+    })
+  }
+
   // Get the status of FutuOpenD
   async status () {
     if (!this._statusPromise) {

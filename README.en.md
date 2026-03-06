@@ -87,6 +87,15 @@ const ws = new WebSocket('ws://localhost:8081')
 ws.on('message', msg => {
   const data = JSON.parse(msg)
 
+  if (data.type === 'REQUEST_PIC_CODE') {
+    console.log('pic verify code path:', data.pic_verify_code_path)
+    ws.send(JSON.stringify({
+      type: 'VERIFY_PIC_CODE',
+      code: '1234'
+    }))
+    return
+  }
+
   if (data.type === 'REQUEST_CODE') {
     ws.send(JSON.stringify({
       type: 'VERIFY_CODE',
@@ -116,6 +125,15 @@ ws.on('open', () => {
 Both downstream and upstream messages are in JSON type.
 
 #### Downstream Messages: From Server to Client
+
+```json
+{
+  "type": "REQUEST_PIC_CODE",
+  "pic_verify_code_path": "/usr/src/app/bin/verify_code.png"
+}
+```
+
+which means the FutuOpenD agent requires you to provide a graphic verification code, and `pic_verify_code_path` is the detected saved image path (might be `null`)
 
 ```json
 {
@@ -167,6 +185,15 @@ Tells the server to initialize the Futu OpenD agent, which only works when `FUTU
 ```
 
 Asks the server to response the current status of the server
+
+```json
+{
+  "type": "VERIFY_PIC_CODE",
+  "code": "1234"
+}
+```
+
+Submits the graphic verification code to Futu OpenD agent.
 
 ```json
 {

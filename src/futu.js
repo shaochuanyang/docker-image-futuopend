@@ -1,5 +1,7 @@
 const {WebSocketServer} = require('ws')
 const pty = require('node-pty')
+const fs = require('fs')
+const {join, isAbsolute} = require('path')
 
 const {
   STATUS,
@@ -34,10 +36,12 @@ class FutuManager {
     this._api_port = api_port
     this._status = STATUS.ORIGIN
     this._supervise = supervise
+    this._pic_verify_code_path = null
+    this._recent_output = ''
     this._retry = parseInt(
       // For testing purposes
       process.env.FUTU_RETRY,
-      1
+      10
     ) || 0
 
     this._should_log = log_level !== 'no'
@@ -52,6 +56,13 @@ class FutuManager {
       if (this._status === STATUS.REQUESTING_VERIFICATION_CODE) {
         this._send({
           type: 'REQUEST_CODE'
+        }, [ws])
+      }
+
+      if (this._status === STATUS.REQUESTING_PICTURE_VERIFICATION_CODE) {
+        this._send({
+          type: 'REQUEST_PIC_CODE',
+          pic_verify_code_path: this._pic_verify_code_path
         }, [ws])
       }
 
@@ -75,6 +86,11 @@ class FutuManager {
 
         if (type === 'VERIFY_CODE') {
           this.verify_code(code)
+          return
+        }
+
+        if (type === 'VERIFY_PIC_CODE') {
+          this.verify_pic_code(code)
           return
         }
 
@@ -171,7 +187,28 @@ class FutuManager {
 
     this._child.on('data', chunk => {
       process.stdout.write(chunk)
+      this._append_recent_output(chunk)
       this._output.add(chunk)
+
+      if (
+        this._status !== STATUS.REQUESTING_PICTURE_VERIFICATION_CODE
+        && this._status !== STATUS.VERIFIYING_PICTURE_CODE
+        && this._is_requesting_pic_verify_code(this._recent_output)
+      ) {
+        this._pic_verify_code_path = this._locate_pic_verify_code_path(this._recent_output)
+        this._log(
+          'Picture verification requested, detected path:',
+          this._pic_verify_code_path || '<not found>'
+        )
+        this._send({
+          type: 'REQUEST_PIC_CODE',
+          pic_verify_code_path: this._pic_verify_code_path
+        })
+        this._status = STATUS.REQUESTING_PICTURE_VERIFICATION_CODE
+        // Consume marker text to avoid repeatedly triggering on following chunks.
+        this._recent_output = ''
+        return
+      }
 
       if (this._output.includes('req_phone_verify_code')) {
         this._send({
@@ -223,6 +260,18 @@ class FutuManager {
       return
     }
 
+    if (msg.type === 'REQUEST_PIC_CODE' && this._pic_code) {
+      // Already has a picture verification code
+      return
+    }
+
+    if (msg.type === 'REQUEST_PIC_CODE') {
+      this._log(
+        'Sending REQUEST_PIC_CODE to clients, path:',
+        msg.pic_verify_code_path || '<not found>'
+      )
+    }
+
     (clients || this._clients).forEach(client => {
       client.send(JSON.stringify(msg))
     })
@@ -246,6 +295,14 @@ class FutuManager {
     })
   }
 
+  verify_pic_code(code) {
+    this._pic_code = code
+
+    if (this._status === STATUS.REQUESTING_PICTURE_VERIFICATION_CODE) {
+      this._set_pic_verify_code()
+    }
+  }
+
   _set_verify_code() {
     const code = this._code
     this._code = undefined
@@ -258,6 +315,122 @@ class FutuManager {
 
     this._status = STATUS.VERIFIYING_CODE
     this._child.write(`input_phone_verify_code -code=${code}\r`)
+  }
+
+  _set_pic_verify_code() {
+    const code = this._pic_code
+    this._pic_code = undefined
+
+    if (this._status !== STATUS.REQUESTING_PICTURE_VERIFICATION_CODE) {
+      return
+    }
+
+    this._status = STATUS.VERIFIYING_PICTURE_CODE
+    this._child.write(`input_pic_verify_code -code=${code}\r`)
+  }
+
+  _is_requesting_pic_verify_code(content) {
+    const normalized = String(content || '').toLowerCase()
+    return (
+      normalized.indexOf('req_pic_verify_code') > -1
+      || (
+        normalized.indexOf('graphic') > -1
+        && normalized.indexOf('verification') > -1
+      )
+      || normalized.indexOf('picverifycode') > -1
+      || normalized.indexOf('pic_verify_code') > -1
+    )
+  }
+
+  _locate_pic_verify_code_path(chunk) {
+    return (
+      this._extract_pic_verify_code_path(chunk)
+      || this._find_latest_pic_verify_code_file()
+      || null
+    )
+  }
+
+  _extract_pic_verify_code_path(chunk) {
+    const quoted = chunk.match(/["']([^"']+\.(png|jpg|jpeg|bmp|gif))["']/i)
+    if (quoted && quoted[1]) {
+      return this._to_absolute_path(quoted[1])
+    }
+
+    const plain = chunk.match(/([A-Za-z]:\\[^\s"'`]+\.(png|jpg|jpeg|bmp|gif)|\/[^\s"'`]+\.(png|jpg|jpeg|bmp|gif))/i)
+    if (plain && plain[1]) {
+      return this._to_absolute_path(plain[1])
+    }
+
+    return null
+  }
+
+  _to_absolute_path(pathLike) {
+    if (!pathLike) {
+      return null
+    }
+
+    if (isAbsolute(pathLike)) {
+      return pathLike
+    }
+
+    return join(process.cwd(), pathLike)
+  }
+
+  _find_latest_pic_verify_code_file() {
+    const dirs = [
+      process.cwd(),
+      join(process.cwd(), 'bin'),
+      '/tmp',
+      '/usr/src/app',
+      '/usr/src/app/bin'
+    ]
+
+    const imageExtReg = /\.(png|jpg|jpeg|bmp|gif)$/i
+    const picHintReg = /(verify|captcha|pic|code)/i
+    let newest = null
+
+    dirs.forEach(dir => {
+      try {
+        if (!fs.existsSync(dir)) {
+          return
+        }
+
+        const names = fs.readdirSync(dir)
+        names.forEach(name => {
+          if (!imageExtReg.test(name) || !picHintReg.test(name)) {
+            return
+          }
+
+          const full = join(dir, name)
+          const stat = fs.statSync(full)
+          if (!stat.isFile()) {
+            return
+          }
+
+          if (!newest || stat.mtimeMs > newest.mtimeMs) {
+            newest = {
+              path: full,
+              mtimeMs: stat.mtimeMs
+            }
+          }
+        })
+      } catch (err) {
+        // ignore inaccessible directories
+      }
+    })
+
+    return newest ? newest.path : null
+  }
+
+  _append_recent_output(content) {
+    this._recent_output += String(content || '')
+
+    const max_length = 4000
+    if (this._recent_output.length > max_length) {
+      this._recent_output = this._recent_output.slice(
+        this._recent_output.length - max_length
+      )
+    }
   }
 }
 
