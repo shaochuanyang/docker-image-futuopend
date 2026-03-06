@@ -60,7 +60,7 @@ docker pull shaochuanyang123/moomoo_opend:latest
 - **FUTU_PORT** `integer` the port of the FutuOpenD, defaults to `11111`
 - **SERVER_PORT** `integer` the port of the websocket server, defaults to `8000`
 - **FUTU_INIT_ON_START** `string="yes"` whether it will initialize the Futu OpenD agent on the start, defaults to `"yes"`
-- **FUTU_SUPERVISE_PROCESS** `string="yes"` whether it will supervise the FutuOpenD process
+- **FUTU_SUPERVISE_PROCESS** `string="false"` whether it will supervise the FutuOpenD process
 
 ### Docker Run: How to start the container
 

@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 const env = require('@ostai/env')
+const fs = require('fs')
+const {createPrivateKey} = require('crypto')
 
 const {
   FutuManager
@@ -29,6 +31,8 @@ if (!login_pwd && !login_pwd_md5) {
   throw new Error('Either FUTU_LOGIN_PWD or FUTU_LOGIN_PWD_MD5 is required')
 }
 
+validate_rsa_private_key(rsa_private_key)
+
 new FutuManager(FUTU_CMD, {
   login_account,
   login_pwd,
@@ -43,3 +47,56 @@ new FutuManager(FUTU_CMD, {
   auto_init: init_on_start,
   supervise
 })
+
+function validate_rsa_private_key(private_key_path) {
+  if (!private_key_path) {
+    return
+  }
+
+  if (!fs.existsSync(private_key_path)) {
+    throw new Error(`FUTU_RSA_PRIVATE_KEY does not exist: ${private_key_path}`)
+  }
+
+  const stat = fs.statSync(private_key_path)
+  if (!stat.isFile()) {
+    throw new Error(`FUTU_RSA_PRIVATE_KEY is not a file: ${private_key_path}`)
+  }
+
+  try {
+    fs.accessSync(private_key_path, fs.constants.R_OK)
+  } catch (err) {
+    throw new Error(`FUTU_RSA_PRIVATE_KEY is not readable: ${private_key_path}`)
+  }
+
+  const content = fs.readFileSync(private_key_path, 'utf8').trim()
+
+  const has_pem_begin =
+    content.includes('-----BEGIN RSA PRIVATE KEY-----')
+    || content.includes('-----BEGIN PRIVATE KEY-----')
+
+  const has_pem_end =
+    content.includes('-----END RSA PRIVATE KEY-----')
+    || content.includes('-----END PRIVATE KEY-----')
+
+  if (!has_pem_begin || !has_pem_end) {
+    throw new Error(
+      'FUTU_RSA_PRIVATE_KEY must be a PEM private key (BEGIN/END PRIVATE KEY)'
+    )
+  }
+
+  let key_object
+  try {
+    key_object = createPrivateKey({
+      key: content
+    })
+  } catch (err) {
+    throw new Error(`FUTU_RSA_PRIVATE_KEY parse failed: ${err.message}`)
+  }
+
+  const key_type = key_object && key_object.asymmetricKeyType
+  if (key_type && key_type !== 'rsa' && key_type !== 'rsa-pss') {
+    throw new Error(
+      `FUTU_RSA_PRIVATE_KEY must be RSA, received: ${key_type}`
+    )
+  }
+}
