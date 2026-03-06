@@ -44,6 +44,7 @@ docker pull shaochuanyang123/moomoo_opend:10.0.6008
 - **FUTU_LOGIN_PWD_MD5** `string`（可选，32 位 MD5 密文）
   - `FUTU_LOGIN_PWD` 和 `FUTU_LOGIN_PWD_MD5` 至少填一个
   - 支持仅明文，或同时传入 `md5 + 明文`
+- **FUTU_RSA_PRIVATE_KEY** `string`（可选，RSA 私钥文件绝对路径，启用交易接口 RSA 加密时使用）
 - **FUTU_LANG** `string`，默认 `chs`
 - **FUTU_LOG_LEVEL** `string`，默认 `no`
 - **FUTU_IP** `string`, 默认 `"0.0.0.0"`, 不同于 FutuOpenD CMD 的默认 IP `127.0.0.1`，由于这个仓库的目的是用于 kubernetes 集群，需要让 FutuOpenD 能够接受其他容器的请求。

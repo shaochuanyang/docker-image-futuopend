@@ -50,6 +50,7 @@ docker pull shaochuanyang123/moomoo_opend:latest
 - **FUTU_LOGIN_PWD_MD5** `string` optional, login password ciphertext (32-bit MD5 encrypted hexadecimal).
   - At least one of `FUTU_LOGIN_PWD` and `FUTU_LOGIN_PWD_MD5` is required.
   - Supports plaintext only, or `md5 + plaintext` together.
+- **FUTU_RSA_PRIVATE_KEY** `string` optional, absolute path to RSA private key file for trading API encryption.
 - **FUTU_LANG** `string` defaults to `chs`
 - **FUTU_LOG_LEVEL** `string` defaults to `no`, options:
   - `"no"` no log (the default value)

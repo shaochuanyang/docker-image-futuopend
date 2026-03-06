@@ -14,6 +14,7 @@ class FutuManager {
     login_account,
     login_pwd,
     login_pwd_md5,
+    rsa_private_key,
     lang,
     log_level,
     ip,
@@ -31,6 +32,7 @@ class FutuManager {
     this._login_account = login_account
     this._login_pwd = login_pwd
     this._login_pwd_md5 = login_pwd_md5
+    this._rsa_private_key = rsa_private_key
     this._lang = lang
     this._log_level = log_level
     this._api_port = api_port
@@ -147,6 +149,7 @@ class FutuManager {
       login_account: this._login_account,
       login_pwd: '<hidden>',
       login_pwd_md5: '<hidden>',
+      rsa_private_key: this._rsa_private_key ? '<configured>' : '<empty>',
       lang: this._lang,
       log_level: this._log_level,
       api_port: this._api_port
@@ -160,6 +163,10 @@ class FutuManager {
 
     if (this._login_pwd_md5) {
       login_args.push(`-login_pwd_md5=${this._login_pwd_md5}`)
+    }
+
+    if (this._rsa_private_key) {
+      login_args.push(`-rsa_private_key=${this._rsa_private_key}`)
     }
 
     this._child = pty.spawn(this._cmd, [
